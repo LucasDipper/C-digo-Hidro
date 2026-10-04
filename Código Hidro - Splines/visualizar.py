@@ -294,6 +294,16 @@ aplicarDados(DADOS_EMBUTIDOS, 'carregados automaticamente');
 """
 
 
+# ============================================================
+# GERAÇÃO DO VISUALIZADOR 3D (arquivo HTML)
+# Esta função recebe a malha, os painéis e o perfil lateral calculados pelo pipeline, embute tudo
+# em um modelo de página HTML (_TEMPLATE) e salva o resultado em um arquivo que abre no navegador.
+# Novidade desta versão: o argumento perfil_diametral, com a silhueta lateral do casco.
+# Depende de, no início do arquivo visualizar.py (não incluídos aqui): os módulos
+# json, os e webbrowser, e a variável _TEMPLATE, que guarda o HTML/JavaScript do visualizador
+# com os marcadores __DADOS_JSON__ e __TITULO__.
+# ============================================================
+
 def gerar_visualizacao_3d(malha_final, paineis_boreste=None, paineis_bombordo=None, paineis_fechamento=None, perfil_diametral=None,
                            caminho_saida="visualizacao_casco.html",
                            titulo="Gerado automaticamente pelo pipeline Python.", abrir_navegador=True):
@@ -308,22 +318,32 @@ def gerar_visualizacao_3d(malha_final, paineis_boreste=None, paineis_bombordo=No
     Essa separação permite ligar/desligar o bombordo corretamente, inclusive
     recortando os painéis de fechamento exatamente na linha de centro.
     """
+    # --- MONTAGEM DOS DADOS ---
+    # Reúne tudo o que o visualizador precisa em um único dicionário.
+    # "x or []" (ou "x or {}") troca None por uma lista (ou dicionário) vazia, para o visualizador
+    # sempre receber um valor do tipo esperado.
     dados = {
-        "malha_final": malha_final,
-        "boreste": paineis_boreste or [],
-        "bombordo": paineis_bombordo or [],
-        "fechamento": paineis_fechamento or [],
-        "perfil_diametral": perfil_diametral or {}
+        "malha_final": malha_final,                # malha de pontos [x, y, z]
+        "boreste": paineis_boreste or [],          # painéis do lado de boreste
+        "bombordo": paineis_bombordo or [],        # painéis do lado de bombordo (espelhados)
+        "fechamento": paineis_fechamento or [],    # painéis de fundo, proa e popa
+        "perfil_diametral": perfil_diametral or {}   # silhueta lateral (plano de simetria); no main: {"contorno": contorno_perfil(malha_final)}
     }
-    html = _TEMPLATE.replace("__DADOS_JSON__", json.dumps(dados))
-    html = html.replace("__TITULO__", titulo)
 
-    caminho_absoluto = os.path.abspath(caminho_saida)
-    with open(caminho_absoluto, "w", encoding="utf-8") as f:
+    # --- PREENCHIMENTO DO MODELO HTML ---
+    # json.dumps converte o dicionário em texto JSON, que é inserido no lugar do marcador
+    # __DADOS_JSON__ do modelo; assim os dados ficam dentro do próprio HTML.
+    html = _TEMPLATE.replace("__DADOS_JSON__", json.dumps(dados))
+    html = html.replace("__TITULO__", titulo)      # coloca o título no marcador correspondente
+
+    # --- GRAVAÇÃO DO ARQUIVO ---
+    caminho_absoluto = os.path.abspath(caminho_saida)   # transforma o caminho em absoluto (necessário para abrir no navegador)
+    with open(caminho_absoluto, "w", encoding="utf-8") as f:   # "w" cria o arquivo (ou sobrescreve se já existir)
         f.write(html)
 
+    # --- ABERTURA NO NAVEGADOR ---
     if abrir_navegador:
-        webbrowser.open(f"file://{caminho_absoluto}")
+        webbrowser.open(f"file://{caminho_absoluto}")   # abre o HTML recém-gerado no navegador padrão
 
-    print(f"Visualização salva em: {caminho_absoluto}")
-    return caminho_absoluto
+    print(f"Visualização salva em: {caminho_absoluto}")   # informa onde o arquivo foi salvo
+    return caminho_absoluto                                # devolve o caminho, caso o chamador queira usá-lo
