@@ -7,7 +7,7 @@ from visualizar import gerar_visualizacao_3d
 from graficos import plotar_curva
 from hidrostatica import paineis_para_array, calcular_hidrostatica, calcular_curva
 import numpy as np  
-import matplotlib.pyplot as plt                                         # usado para gerar a lista de calados da curva
+import matplotlib.pyplot as plt                                         
 #A parte acima importa bibliotecas do python e funções dos outros código/arquivos dessa pasta
 
 # ============================================================
@@ -122,16 +122,13 @@ if idx_proa != 0:
     print(f"Aviso: dado insuficiente na proa. Fechamento feito na baliza x={xs_desejados[idx_proa]:.2f} m.")
 
 # ============================================================
-# Vetores normais e visualização.
+# Lista completa de painéis.
 # Junta todos os painéis em uma única lista, calcula o vetor normal de cada um
 # e gera a visualização 3D interativa em HTML.
 # ============================================================
 
 # Lista completa de painéis: boreste + bombordo + fundo + pontas
 todos_paineis = paineis + paineis_bombordo + paineis_fundo + paineis_pontas
-
-# Vetor normal de cada painel (necessário para os cálculos hidrostáticos)
-paineis_vetor = vetor_normal_painel(todos_paineis)
 
 # ============================================================
 # Cálculos hidrostáticos.
@@ -145,10 +142,11 @@ paineis_array = paineis_para_array(todos_paineis)        # painéis originais, f
 x_meia_nau = (xs_balizas[0] + xs_balizas[-1]) / 2        # meia-nau = metade do comprimento coberto pela tabela (x = 0 na proa)
 
 # --- Calado específico ---
-calado_unico = 21.3333 * 0.3048                          # calado de projeto da Série 60 (B/T = 2,5): 21,33 ft em metros
-resultado = calcular_hidrostatica(paineis_array, calado_unico, x_meia_nau)
+calado_unico = 6.5024                                    # calado em metros (aqui, o calado de projeto da Série 60: B/T = 2,5)
+resultado = calcular_hidrostatica(paineis_array, calado_unico, x_meia_nau)   # todas as características para este calado
 print(f"Calado {resultado['calado']:.3f} m: volume = {resultado['volume']:.2f} m3, "
-      f"área molhada = {resultado['area_molhada']:.2f} m2")
+      f"área molhada = {resultado['area_molhada']:.2f} m2, "
+      f"A_WL = {resultado['area_plano_flutuacao']:.2f} m2")
 
 # Posição (índice) das balizas e das linhas d'água REAIS dentro da malha final.
 # O visualizador usa isso para desenhar, por padrão, só as linhas reais da tabela de cotas
@@ -156,13 +154,15 @@ print(f"Calado {resultado['calado']:.3f} m: volume = {resultado['volume']:.2f} m
 indices_balizas_reais = [xs_desejados.index(x) for x in xs_balizas]
 indices_linhas_reais = [zs_desejados.index(z) for z in sorted(set(zs_reais))]
 
-# --- Curva da área molhada ---
-calados = np.concatenate([[0.01, 0.1, 0.25, 0.4, 0.6, 0.8], np.linspace(1.0, zs_desejados[-1], 30)])   # 20 calados igualmente espaçados, de 5% do pontal até o pontal
+# --- Curvas hidrostáticas (descomente para gerar os gráficos) ---
+calados = np.concatenate([[0.01, 0.1, 0.25, 0.4, 0.6, 0.8], np.linspace(1.0, zs_desejados[-1], 30)])   # 6 calados extras perto da quilha + 30 uniformes de 1 m até o pontal
 curva = calcular_curva(paineis_array, calados, x_meia_nau)             # um resultado por calado
 plotar_curva(curva, 'area_molhada', "Área molhada x calado (casco 4210)", "Área molhada (m²)")
 plotar_curva(curva, 'volume', "Volume x calado (casco 4210)", "Volume (m³)")
+plotar_curva(curva, 'area_plano_flutuacao', "Área do plano de flutuação x calado (casco 4210)", "A_WL (m²)")
 
-plt.show()
+plt.show()                                                             # abre todos os gráficos de uma vez
+
 
 # Gera o arquivo HTML com o casco em 3D; os painéis de fechamento (fundo e pontas) são agrupados
 #gerar_visualizacao_3d(

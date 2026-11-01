@@ -153,6 +153,12 @@ def area_molhada(submerso):
     # Área da superfície molhada (Eq. 4.5): soma dos módulos dos vetores-área de todos os triângulos submersos.
     return float(np.sum(np.linalg.norm(submerso['vetor_area'], axis=1)))
 
+def area_plano_flutuacao(submerso):
+    # Área do plano de flutuação (Eq. 4.6): menos a soma da componente z dos vetores-área dos triângulos submersos.
+    # A componente z é a "sombra" horizontal de cada triângulo; o sinal negativo é porque, no fundo do casco, a normal aponta para baixo.
+    area = submerso['vetor_area']        # vetor-área de cada triângulo, formato (M, 3)
+    return float(-np.sum(area[:, 2]))    # soma só a coluna z (índice 2) e troca o sinal
+
 # ============================================================
 # 3) CALADO ÚNICO
 # Prepara UM calado (a partir do original) e calcula todas as características disponíveis.
@@ -165,6 +171,7 @@ def calcular_hidrostatica(paineis_array, calado, x_meia_nau):
         'calado': calado,                          # calado deste resultado
         'volume': volume(submerso),                # volume deslocado
         'area_molhada': area_molhada(submerso),    # área da superfície molhada
+        'area_plano_flutuacao': area_plano_flutuacao(submerso),     # área do plano de flutuação
     }
 
 # ============================================================
